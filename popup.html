@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 300px; padding: 15px; font-family: sans-serif; }
+    .status-box { background: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+    .warning { color: #d32f2f; font-size: 11px; font-weight: bold; border: 1px solid #d32f2f; padding: 5px; margin-top: 10px; }
+    button { width: 100%; padding: 10px; margin: 5px 0; cursor: pointer; font-weight: bold; }
+    #btn-start { background: #4caf50; color: white; border: none; }
+    #btn-stop { background: #f44336; color: white; border: none; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .info { font-size: 13px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h3>Tor Browser VPN</h3>
+  <div class="status-box">
+    <div class="info">Trạng thái: <span id="status">Chưa kết nối</span></div>
+    <div class="info">IP: <span id="current-ip">---</span></div>
+    <div class="info">Ping: <span id="ping">---</span> ms</div>
+  </div>
+
+  <button id="btn-start">Bắt đầu kết nối</button>
+  <button id="btn-stop" disabled>Ngắt kết nối</button>
+
+  <div class="warning">
+    ⚠️ CẢNH BÁO: Bạn nên truy cập các trang web qua giao thức <b>HTTPS</b> để tránh việc nhà cung cấp proxy thu thập dữ liệu nhạy cảm.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

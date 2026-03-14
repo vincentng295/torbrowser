@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Tor Browser VPN",
+  "version": "1.1",
+  "permissions": [
+    "proxy",
+    "storage",
+    "webRequest",
+    "webRequestAuthProvider",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://goodextensions.mooo.com/*", 
+    "https://api.ipify.org/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
