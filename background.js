@@ -86,15 +86,35 @@ async function handleConnect(sendResponse) {
       }
     };
 
-    chrome.proxy.settings.set({ value: proxyConfig, scope: 'regular' }, () => {
-      sendResponse({ success: true, ip: config.url });
-    });
+    // 1. Áp dụng Proxy
+    chrome.proxy.settings.set({ value: proxyConfig, scope: 'regular' }, async () => {
+      // 2. Chờ một chút để kết nối ổn định
+      await new Promise(r => setTimeout(r, 2000));
 
-    chrome.privacy.network.webRTCIPHandlingPolicy.set({
-      value: "disable_non_proxied_udp" // Chỉ cho phép WebRTC qua Proxy
+      // 3. Thực hiện kiểm tra IP và Ping từ background
+      try {
+        const start = Date.now();
+        const res = await fetch("https://api.ipify.org?format=json", { cache: 'no-store' });
+        const data = await res.json();
+        const ping = Date.now() - start;
+
+        // 4. Lưu thông tin đã kiểm tra vào storage
+        await chrome.storage.local.set({ 
+          isConnected: true, 
+          isConnecting: false, 
+          lastIp: data.ip, 
+          lastPing: ping 
+        });
+      } catch (e) {
+        // Nếu không check được IP nhưng proxy đã set xong
+        await chrome.storage.local.set({ isConnected: true, isConnecting: false });
+      }
+      
+      if (sendResponse) sendResponse({ success: true });
     });
 
   } catch (error) {
-    sendResponse({ success: false, message: error.message });
+    await chrome.storage.local.set({ isConnecting: false, isConnected: false });
+    if (sendResponse) sendResponse({ success: false, message: error.message });
   }
 }

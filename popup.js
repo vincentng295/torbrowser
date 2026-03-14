@@ -1,64 +1,59 @@
-// Khai báo hàm updateUI ở phạm vi toàn cục của file để tránh lỗi ReferenceError
-function updateUI(connected, ip = "---", ping = "---") {
+// 1. Hàm cập nhật UI dựa trên dữ liệu hiện tại
+function updateUI(connected, ip = "---", ping = "---", isConnecting = false) {
   const statusEl = document.getElementById('status');
-  statusEl.innerText = connected ? "Đang hoạt động" : "Chưa kết nối";
-  statusEl.style.color = connected ? "#4caf50" : "#000";
+  const btnStart = document.getElementById('btn-start');
+  const btnStop = document.getElementById('btn-stop');
+
+  if (isConnecting) {
+    statusEl.innerText = "Đang kết nối...";
+    btnStart.disabled = true;
+    btnStop.disabled = true;
+  } else {
+    statusEl.innerText = connected ? "Đang hoạt động" : "Chưa kết nối";
+    statusEl.style.color = connected ? "#4caf50" : "#000";
+    btnStart.disabled = connected;
+    btnStop.disabled = !connected;
+  }
   
   document.getElementById('current-ip').innerText = ip;
   document.getElementById('ping').innerText = ping;
-  
-  document.getElementById('btn-start').disabled = connected;
-  document.getElementById('btn-stop').disabled = !connected;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const data = await chrome.storage.local.get(['isConnected', 'lastIp', 'lastPing']);
-  if (data.isConnected) {
-    updateUI(true, data.lastIp, data.lastPing);
-  }
-});
+// 2. Tự động đồng bộ trạng thái khi mở popup
+async function syncState() {
+  const data = await chrome.storage.local.get(['isConnected', 'isConnecting', 'lastIp', 'lastPing']);
+  updateUI(data.isConnected, data.lastIp, data.lastPing, data.isConnecting);
+}
 
+document.addEventListener('DOMContentLoaded', syncState);
+
+// 3. Nút Bắt đầu
 document.getElementById('btn-start').addEventListener('click', async () => {
-  const statusEl = document.getElementById('status');
-  const btnStart = document.getElementById('btn-start');
-  
-  statusEl.innerText = "Đang kết nối Proxy...";
-  btnStart.disabled = true;
+  // Đánh dấu đang kết nối vào storage để dù đóng popup cũng không bị mất trạng thái
+  await chrome.storage.local.set({ isConnecting: true, isConnected: false });
+  syncState();
 
-  // 1. Gửi lệnh kết nối proxy
-  chrome.runtime.sendMessage({ action: "connect" }, async (res) => {
-    if (res && res.success) {
-      statusEl.innerText = "Đang xác thực IP mới...";
-      
-      // 2. Chờ 2 giây để Proxy thực sự có hiệu lực trước khi check IP
-      await new Promise(resolve => setTimeout(resolve, 2000));
+  // Gửi lệnh kết nối (Không cần callback phức tạp ở đây)
+  chrome.runtime.sendMessage({ action: "connect" });
 
-      try {
-        const startTime = Date.now();
-        // 3. Fetch với cache: 'no-store' để tránh lấy IP cũ từ cache trình duyệt
-        const response = await fetch("https://api.ipify.org?format=json", { cache: 'no-store' });
-        const ipData = await response.json();
-        const ping = Date.now() - startTime;
-
-        updateUI(true, ipData.ip, ping);
-        chrome.storage.local.set({ isConnected: true, lastIp: ipData.ip, lastPing: ping });
-      } catch (err) {
-        // Trường hợp Proxy sống nhưng không cho phép truy cập ipify
-        statusEl.innerText = "Đã kết nối (Không thể check IP)";
-        updateUI(true, "Ẩn danh", "---");
-      }
-    } else {
-      alert("Lỗi: " + (res.message || "Không thể kết nối"));
-      updateUI(false);
+  // Theo dõi trạng thái hoàn tất từ background (sử dụng polling nhẹ hoặc đợi phản hồi)
+  // Trong background.js, khi kết nối xong hãy set isConnecting: false
+  // Để đơn giản, ta kiểm tra định kỳ trong popup
+  const checkInterval = setInterval(async () => {
+    const data = await chrome.storage.local.get(['isConnecting']);
+    if (!data.isConnecting) {
+      clearInterval(checkInterval);
+      syncState();
     }
-  });
+  }, 500);
 });
 
+// 4. Nút Ngắt kết nối
 document.getElementById('btn-stop').addEventListener('click', () => {
   chrome.runtime.sendMessage({ action: "stop" }, (res) => {
     if (res && res.success) {
-      updateUI(false);
-      chrome.storage.local.set({ isConnected: false });
+      chrome.storage.local.set({ isConnected: false, lastIp: "---", lastPing: "---" });
+      syncState();
     }
   });
 });
