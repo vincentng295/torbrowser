@@ -7,7 +7,8 @@
     "storage",
     "webRequest",
     "webRequestAuthProvider",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "privacy"
   ],
   "host_permissions": [
     "https://goodextensions.mooo.com/*", 

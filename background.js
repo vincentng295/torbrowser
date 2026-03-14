@@ -90,6 +90,10 @@ async function handleConnect(sendResponse) {
       sendResponse({ success: true, ip: config.url });
     });
 
+    chrome.privacy.network.webRTCIPHandlingPolicy.set({
+      value: "disable_non_proxied_udp" // Chỉ cho phép WebRTC qua Proxy
+    });
+
   } catch (error) {
     sendResponse({ success: false, message: error.message });
   }
